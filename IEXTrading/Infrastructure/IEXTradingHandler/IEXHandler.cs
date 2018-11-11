@@ -77,5 +77,36 @@ namespace IEXTrading.Infrastructure.IEXTradingHandler
 
             return Equities;
         }
+
+        /****
+         * Calls the IEX stock API to get 1 month's chart for the supplied symbol. 
+        ****/
+        public List<Equity> GetaMonthEquitiesforSymbol(string symbol)
+        {
+            //Using the format method.
+            string IEXTrading_API_PATH = BASE_URL + "stock/{0}/batch?types=chart&range=1m";
+            IEXTrading_API_PATH = string.Format(IEXTrading_API_PATH, symbol);
+
+            string charts = "";
+            List<Equity> Equities = new List<Equity>();
+            httpClient.BaseAddress = new Uri(IEXTrading_API_PATH);
+            HttpResponseMessage response = httpClient.GetAsync(IEXTrading_API_PATH).GetAwaiter().GetResult();
+            if (response.IsSuccessStatusCode)
+            {
+                charts = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            }
+            if (!charts.Equals(""))
+            {
+                ChartRoot root = JsonConvert.DeserializeObject<ChartRoot>(charts, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+                Equities = root.chart.ToList();
+            }
+            //make sure to add the symbol the chart
+            foreach (Equity Equity in Equities)
+            {
+                Equity.symbol = symbol;
+            }
+
+            return Equities;
+        }
     }
 }

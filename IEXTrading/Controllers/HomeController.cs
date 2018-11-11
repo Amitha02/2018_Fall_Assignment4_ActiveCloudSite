@@ -168,5 +168,43 @@ namespace MVCTemplate.Controllers
             return new CompaniesEquities(companies, equities.Last(), dates, prices, volumes, avgprice, avgvol);
         }
 
+        /****
+      * Returns the ViewModel CompaniesEquities based on the data provided.
+      * Recommendation Property is set based on the HighPrice, LowPrice and Average Price
+      ****/
+        public CompaniesEquities getRecommendationCompaniesEquitiesModel(List<Equity> equities)
+        {
+            List<Company> companies = dbContext.Companies.ToList();
+
+            if (equities.Count == 0)
+            {
+                return new CompaniesEquities(companies, null, "", "", "", 0, 0, 0, 0, "");
+            }
+
+            Equity current = equities.Last();
+            string dates = string.Join(",", equities.Select(e => e.date));
+            string prices = string.Join(",", equities.Select(e => e.high));
+            string volumes = string.Join(",", equities.Select(e => e.volume / 1000000)); //Divide vol by million
+            float avgprice = equities.Average(e => e.high);
+            double avgvol = equities.Average(e => e.volume) / 1000000; //Divide volume by million
+
+            //Find the maximum high value from the equities list and assign it to the highPrice
+            float highPrice = equities.Max(e => e.high);
+            //Find the minimum high value from the equities list and assign it to the lowPrice
+            float lowPrice = equities.Where(e => e.high > 0).Min(e => e.high);
+            string recommendation = "";
+            //Setting the Recommendation based on the average price and highPrice
+            if ((highPrice - avgprice) < (avgprice - lowPrice))
+            {
+                recommendation = "Buy";
+            }
+            else
+            {
+                recommendation = "Sell";
+            }
+
+            return new CompaniesEquities(companies, equities.Last(), dates, prices, volumes, avgprice, avgvol, highPrice, lowPrice, recommendation);
+        }
+
     }
 }
