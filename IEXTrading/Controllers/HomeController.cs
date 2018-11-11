@@ -261,6 +261,16 @@ namespace MVCTemplate.Controllers
       * Returns the ViewModel CompaniesEquities based on the data provided.
       * Recommendation Property is set based on the HighPrice, LowPrice and Average Price
       ****/
+       /* Stock Picking Strategy:
+
+        Weekly stock recommendation is based on the stock’s performance for the past one month.The implementation details are the following:
+
+        1.	Pick each stock, calculate the highest price for that month and the lowest price for that month
+        2.	Calculate the average high and low price for that month
+        3.	If the average price is close to the Highest Price, we have recommended that stock for buying.
+        4.	If the average price is close to the low price, we have recommended the stock to be sold
+            This indicates whether the stock is trending UP or DOWN to make the appropriate recommendations.
+        5.	Once we have all the stocks, the order of the recommendation is decided by the average price for the last month.*/
         public CompaniesEquities getRecommendationCompaniesEquitiesModel(List<Equity> equities)
         {
             List<Company> companies = dbContext.Companies.ToList();
