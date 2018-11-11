@@ -1,0 +1,120 @@
+﻿@model List<IEXTrading.Models.ViewModel.CompaniesEquities>
+
+@{
+    ViewData["Title"] = "Recommended Stock";
+}
+
+<h2>Top 5 Recommended Picks</h2>
+<hr style="border-color: green;" />
+
+@if (Model!=null)
+{
+    <table>
+        <tbody>
+            <tr>
+                <td>
+                    Symbol
+                </td>
+                <td>
+                    Last Equity Date
+                </td>
+                <td>
+                    Last Open Price
+                </td>
+                <td>
+                    Last High Price
+                </td>
+                <td>
+                    Last Low Price
+                </td>
+                <td>
+                    Last Close Price
+                </td>
+                <td>
+                    Last Volume
+                </td>
+                <td>
+                    Average Price
+                </td>
+                <td>
+                    Highest Price
+                </td>
+                <td>
+                    Low Price
+                </td>
+                <td>
+                    Recommendation
+                </td>
+            </tr>
+            <tr>
+                <td colspan="11">
+                    <hr style="border-color: green;" />
+                </td>
+            </tr>
+
+            @foreach (var equity in Model)
+            {
+                <tr>
+
+                    <td>
+                        @equity.Current.symbol
+                    </td>
+                    <td>
+                        @equity.Current.date
+                    </td>
+                    <td>
+                        @equity.Current.open
+                    </td>
+
+                    <td>
+                        @equity.Current.high
+                    </td>
+                    <td>
+                        @equity.Current.low
+                    </td>
+                    <td>
+                        @equity.Current.close
+                    </td>
+
+                    <td>
+                        @equity.Current.volume
+                    </td>
+
+                    <td>
+                        @equity.AvgPrice
+                    </td>
+                    <td>
+                        @equity.HighPrice
+                    </td>
+                    <td>
+                        @equity.LowPrice
+                    </td>
+                    <td>
+                        @equity.Recommendation
+                    </td>
+                </tr>
+            }
+            <tr>
+                <td>
+                    <a asp-controller="Home" asp-action="SaveRecommendation"><img src="~/images/button_save-data.png" /></a>
+                </td>
+
+            </tr>
+        </tbody>
+    </table>
+}
+else
+{
+    <table>
+        <tbody>
+            <tr>
+                <td>
+                    <h2>Please navigate to Symbols tab and Save Data before you check Recommendations.</h2>
+                   </td>
+            </tr>
+        </tbody>
+    </table>
+}
+    <script>
+    alertDbSave(@ViewBag.dbSuccessRecommendation);
+    </script>

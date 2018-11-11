@@ -15,6 +15,7 @@ namespace MVCTemplate.Controllers
     public class HomeController : Controller
     {
         public ApplicationDbContext dbContext;
+        internal static List<CompaniesEquities> companiesEquities = new List<CompaniesEquities>();
 
         public HomeController(ApplicationDbContext context)
         {
@@ -66,6 +67,48 @@ namespace MVCTemplate.Controllers
         }
 
         /****
+         * The Chart action calls the GetaMonthEquitiesforSymbol method that returns 1 month's equities for the passed symbol.
+         * A getRecommendationCompaniesEquitiesModel method returns ViewModel CompaniesEquities containing the list of companies, prices, volumes, avg price, 
+           volume, maximum high price, minimum high price and Recommendation to Buy/Sell.
+         * This ViewModel is passed to the Recommendation view.
+        ****/
+        public IActionResult Recommendation()
+        {
+            //Set ViewBag variable first
+            ViewBag.dbSuccessChart = 0;
+
+            CompaniesEquities recommendationEquity;
+            List<Equity> equities = new List<Equity>();
+            IEXHandler webHandler = new IEXHandler();
+            List<Company> companies = dbContext.Companies.ToList();
+            if (companies.Count > 0)
+            {
+                foreach (Company company in companies)
+                {
+                    webHandler = new IEXHandler();
+                    if (companiesEquities == null)
+                        companiesEquities = new List<CompaniesEquities>();
+
+                    if (companiesEquities.Where(c => c != null && c.Current.symbol.Equals(company.symbol)).Count() == 0)
+                    {
+                        equities = webHandler.GetaMonthEquitiesforSymbol(company.symbol);
+                        equities = equities.OrderBy(c => c.date).ToList(); //Make sure the data is in ascending order of date. 
+
+                        recommendationEquity = getRecommendationCompaniesEquitiesModel(equities);
+                        companiesEquities.Add(recommendationEquity);
+                    }
+                }
+
+                companiesEquities = companiesEquities.OrderByDescending(o => o.AvgPrice).ToList();
+
+                if (companiesEquities.Count > 5)
+                    companiesEquities = companiesEquities.GetRange(0, 5);
+
+            }
+            return View(companiesEquities);
+        }
+
+        /****
          * The Refresh action calls the ClearTables method to delete records from a or all tables.
          * Count of current records for each table is passed to the Refresh View.
         ****/
@@ -75,6 +118,8 @@ namespace MVCTemplate.Controllers
             Dictionary<string, int> tableCount = new Dictionary<string, int>();
             tableCount.Add("Companies", dbContext.Companies.Count());
             tableCount.Add("Charts", dbContext.Equities.Count());
+            tableCount.Add("Recommendation", dbContext.RecommendationEquities.Count());
+            companiesEquities = null;
             return View(tableCount);
         }
 
@@ -123,6 +168,44 @@ namespace MVCTemplate.Controllers
         }
 
         /****
+        * Saves the Recommendation Equities to the database.
+       ****/
+        public IActionResult SaveRecommendation()
+        {
+            List<CompaniesEquities> equities = companiesEquities;
+            RecommendationEquity recommendedEquity;
+            dbContext.RecommendationEquities.RemoveRange(dbContext.RecommendationEquities);
+            foreach (CompaniesEquities equity in equities)
+            {
+                recommendedEquity = new RecommendationEquity();
+                if (dbContext.RecommendationEquities.Where(c => c.Symbol.Equals(equity.Current.symbol)).Count() == 0)
+                {
+                    recommendedEquity.Symbol = equity.Current.symbol;
+                    recommendedEquity.LastDate = equity.Current.date;
+                    recommendedEquity.LastOpen = equity.Current.open;
+                    recommendedEquity.LastHigh = equity.Current.high;
+                    recommendedEquity.LastLow = equity.Current.low;
+                    recommendedEquity.LastClose = equity.Current.close;
+                    recommendedEquity.LastVolume = equity.Current.volume;
+                    recommendedEquity.AverageVolume = equity.AvgVolume;
+                    recommendedEquity.AveragePrice = equity.AvgPrice;
+                    recommendedEquity.HighPrice = equity.HighPrice;
+                    recommendedEquity.LowPrice = equity.LowPrice;
+                    recommendedEquity.Recommendation = equity.Recommendation;
+
+                    dbContext.RecommendationEquities.Add(recommendedEquity);
+                }
+            }
+
+            dbContext.SaveChanges();
+            ViewBag.dbSuccessRecommendation = 1;
+
+            //RecommendationEquity companiesEquities = getRecommendationCompaniesEquitiesModel(equities);
+
+            return View("Recommendation", equities);
+        }
+
+        /****
          * Deletes the records from tables.
         ****/
         public void ClearTables(string tableToDel)
@@ -131,18 +214,24 @@ namespace MVCTemplate.Controllers
             {
                 //First remove equities and then the companies
                 dbContext.Equities.RemoveRange(dbContext.Equities);
+                dbContext.RecommendationEquities.RemoveRange(dbContext.RecommendationEquities);
                 dbContext.Companies.RemoveRange(dbContext.Companies);
             }
             else if ("Companies".Equals(tableToDel))
             {
                 //Remove only those that don't have Equity stored in the Equitites table
                 dbContext.Companies.RemoveRange(dbContext.Companies
-                                                         .Where(c => c.Equities.Count == 0)
+                                                         .Where(c => c.Equities.Count == 0 && c.RecommendationEquities.Count == 0)
                                                                       );
             }
             else if ("Charts".Equals(tableToDel))
             {
                 dbContext.Equities.RemoveRange(dbContext.Equities);
+            }
+            else if ("Recommendation".Equals(tableToDel))
+            {
+                dbContext.RecommendationEquities.RemoveRange(dbContext.RecommendationEquities);
+                companiesEquities = null;
             }
             dbContext.SaveChanges();
         }

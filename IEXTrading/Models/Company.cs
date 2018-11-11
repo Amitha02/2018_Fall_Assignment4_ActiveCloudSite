@@ -13,5 +13,6 @@ namespace IEXTrading.Models
         public string type { get; set; }
         public string iexId { get; set; }
         public List<Equity> Equities {get; set; }
+        public List<RecommendationEquity> RecommendationEquities { get; set; }
     }
 }
